@@ -58,7 +58,7 @@ class FileNameRegexAppDirectoriesFinder(BaseFinder):
             if app_location not in searched_locations:
                 searched_locations.append(app_location)
             app_matches = self.find_in_app(app, file_regex)
-            if len(app_matches) is not None:
+            if len(app_matches) != 0:
                 if not all:
                     return app_matches[0]
                 matches.extend(app_matches)
@@ -71,8 +71,9 @@ class FileNameRegexAppDirectoriesFinder(BaseFinder):
         matches = []
         storage = self.storages.get(app)
         if storage:
-            # walk through directory to find files that match
+            # walk through directory to find files that match the regex
             for d, dirs, files in os.walk(storage.base_location):
                 for f in files:
                     if file_regex.match(f) is not None:
-                        matches.append
+                        matches.append(os.path.join(d, f))
+        return matches

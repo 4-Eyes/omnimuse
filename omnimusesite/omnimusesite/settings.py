@@ -125,6 +125,6 @@ STATIC_URL = '/static/'
 STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    #'common.utilities'
+    'common.utilities.FileNameRegexAppDirectoriesFinder'
 ]
 
