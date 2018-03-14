@@ -2,8 +2,7 @@ from django.shortcuts import render
 from django.views.generic.base import TemplateView
 from django.conf import settings
 
-from os import walk
-import django.contrib.staticfiles
+from django.contrib.staticfiles.finders import find
 import re
 
 class IndexView(TemplateView):
@@ -13,16 +12,16 @@ class IndexView(TemplateView):
     def _get_angular_files(self, context):
         # check to see if we've got production static files with a hash in them
         hash_regex = re.compile(r'\.([a-zA-Z0-9]{20})\.bundle\.(js|css)$')
-        inline_file_path = django.contrib.staticfiles.finders.find(r'^inline(\.[a-zA-Z0-9]{20})?\.bundle\.js$')
+        inline_file_path = find(r'^inline(\.[a-zA-Z0-9]{20})?\.bundle\.js$')
 
         is_production_static_files = hash_regex.search(inline_file_path) is not None
         context["is_production_static_files"] = is_production_static_files
         scripts = {}
         if is_production_static_files:
             scripts["inline"] = "configuration/dist/inline." + hash_regex.search(inline_file_path).group(1) + ".bundle.js"
-            scripts["main"] = "configuration/dist/main." + hash_regex.search(django.contrib.staticfiles.finders.find(r'^main(\.[a-zA-Z0-9]{20})?\.bundle\.js$')).group(1) + ".bundle.js"
-            scripts["polyfills"] = "configuration/dist/polyfills." + hash_regex.search(django.contrib.staticfiles.finders.find(r'^polyfills(\.[a-zA-Z0-9]{20})?\.bundle\.js$')).group(1) + ".bundle.js"
-            scripts["styles"] =  "configuration/dist/styles." + hash_regex.search(django.contrib.staticfiles.finders.find(r'^styles(\.[a-zA-Z0-9]{20})?\.bundle\.(js|css)$')).group(1) + ".bundle.css"
+            scripts["main"] = "configuration/dist/main." + hash_regex.search(find(r'^main(\.[a-zA-Z0-9]{20})?\.bundle\.js$')).group(1) + ".bundle.js"
+            scripts["polyfills"] = "configuration/dist/polyfills." + hash_regex.search(find(r'^polyfills(\.[a-zA-Z0-9]{20})?\.bundle\.js$')).group(1) + ".bundle.js"
+            scripts["styles"] =  "configuration/dist/styles." + hash_regex.search(find(r'^styles(\.[a-zA-Z0-9]{20})?\.bundle\.(js|css)$')).group(1) + ".bundle.css"
         else:
             scripts['inline'] = "configuration/dist/inline.bundle.js"
             scripts['main'] = "configuration/dist/main.bundle.js"

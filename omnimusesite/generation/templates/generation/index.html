@@ -1,0 +1,12 @@
+
+{% load static %}
+<app-generation></app-generation>
+<script type="text/javascript" src="{% static scripts.inline %}"></script>
+<script type="text/javascript" src="{% static scripts.polyfills %}"></script>
+{% if is_production_static_files %}
+<link href="{% static scripts.styles %}" rel="stylesheet" type="text/css" />
+{% else %}
+<script type="text/javascript" src="{% static scripts.styles %}"></script>
+<script type="text/javascript" src="{% static scripts.vendor %}"></script>
+{% endif %}
+<script type="text/javascript" src="{% static scripts.main %}"></script>

@@ -31,7 +31,7 @@
         {
             "name": "generation",
             "root": "src",
-            "outDir": "../../omnimusesite/generation/static/generation/distdist",
+            "outDir": "../../omnimusesite/generation/static/generation/dist",
             "assets": [
                 "assets",
                 "favicon.ico"
