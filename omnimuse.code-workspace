@@ -3,5 +3,8 @@
 		{
 			"path": "."
 		}
-	]
+	],
+	"settings": {
+		"python.pythonPath": "${workspaceFolder}\\omnimuse-env\\Scripts\\python.exe"
+	}
 }

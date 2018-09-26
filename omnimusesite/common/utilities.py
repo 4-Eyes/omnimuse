@@ -43,17 +43,22 @@ class FileNameRegexAppDirectoriesFinder(BaseFinder):
                 for path in utils.get_files(storage, ignore_patterns):
                     yield path, storage
 
-    def find(self, regex, all=False):
+    def find(self, app_and_regex, all=False):
         """
-        Look for files in the app directories.
+        Look for files in the specified app's directories.
+        Searches all apps if no app is provided
         """
         matches = []
         file_regex = None
         try:
+            # try to unpack search, fail if search cannot be unpacked
+            app_name, regex = app_and_regex
             file_regex = re.compile(regex)
         except:
-            return matches
+            return matches            
         for app in self.apps:
+            if app != app_name and app_name != None:
+                continue
             app_location = self.storages[app].location
             if app_location not in searched_locations:
                 searched_locations.append(app_location)
