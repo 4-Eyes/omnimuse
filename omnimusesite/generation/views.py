@@ -14,7 +14,6 @@ class IndexView(TemplateView):
         hash_regex = re.compile(r'\.([a-zA-Z0-9]{20})\.(js|css)$')
         runtime_file_path = find(('generation', r'^runtime(\.[a-zA-Z0-9]{20})?\.js$'))
 
-        print(runtime_file_path)
         is_production_static_files = hash_regex.search(runtime_file_path) is not None
         context["is_production_static_files"] = is_production_static_files
         scripts = {}
