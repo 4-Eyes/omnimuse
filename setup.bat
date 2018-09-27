@@ -5,8 +5,8 @@ python -m venv omnimuse-env
 IF %ERRORLEVEL% NEQ 0 GOTO SetupError
 
 :: activate the venv and install the requirements.txt, then deactivate the virtual environment
-echo installing python packages in virtual environment
-cmd /c ".\omnimuse-env\Scripts\activate & pip install -r requirements.txt & .\omnimuse-env\Scripts\deactivate"
+echo updating pip and installing python packages in virtual environment
+cmd /c ".\omnimuse-env\Scripts\activate & python -m pip install --upgrade pip & pip install -r requirements.txt & .\omnimuse-env\Scripts\deactivate"
 IF %ERRORLEVEL% NEQ 0 GOTO SetupError
 
 :: install node packages
