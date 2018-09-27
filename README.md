@@ -35,6 +35,6 @@ Depending on which part of the program you're working on you'll need to run one,
 ```
 2. Configuration website. To run this in development mode, where file changes are compiled as they happen, run the following command in `www\omnimuse` directory.
 ```
-> ng build -w -a configuration
+> ng build configuration --watch
 ```
 3. Generation website. Run the same command as in step 2, but swap `configuration` with `generation`.
