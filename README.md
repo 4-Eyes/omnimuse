@@ -3,7 +3,7 @@
 ## Development
 
 ### Setup
-If running on Windows, running the setup.bat file should set up your environment for development.
+If running on Windows, running the setup.bat file should set up your environment for development. If running Linux, use the equivalent <span>setup.sh</span> file.
 
 Should it fail to complete then run the following commands:
 
