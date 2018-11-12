@@ -2,13 +2,12 @@ import json
 import os
 import re
 import sys
-import time
 from collections import namedtuple
 from datetime import datetime
 from enum import Enum
 from html import unescape
 from queue import Queue
-from threading import Thread
+from threading import Thread, Event
 from uuid import uuid4
 
 import django
@@ -160,6 +159,7 @@ class LastfmHTMLProcessorThread(Thread):
         self.cache = cache # this is a LastfmHTMLCacheManager
         self.processor = LastfmHTMLProcessor()
         self.stop = False
+        self.exit = Event()
 
     def _process_track_html(self, html):
         track_mappings = self.processor.parse_track_page(html)
@@ -216,10 +216,11 @@ class LastfmHTMLProcessorThread(Thread):
                     self._process_track_html(html)
                 elif file_type == FileTypes.USER_LIB_ARTIST_PAGE:
                     self._process_user_lib_artist_html(html)
-            time.sleep(10)
+            self.exit.wait(10)
     
     def stop_process(self):
         self.stop = True
+        self.exit.set()
 
 class LastfmHTMLDownloader(Thread):
 
@@ -227,6 +228,7 @@ class LastfmHTMLDownloader(Thread):
         super().__init__()
         self.html_cache_manager = html_cache_manager
         self.stop = False
+        self.exit = Event()
     
     def _download_artist_track_pages(self, artist_name):
         # only take the first 10 pages of an artist, as we're unlikely to get much after this
@@ -301,10 +303,11 @@ class LastfmHTMLDownloader(Thread):
             if user_to_process is not None:
                 self._download_user_lib_artist_pages(user_to_process.name)
 
-            time.sleep(20)
+            self.exit.wait(20)
 
     def stop_process(self):
         self.stop = True
+        self.exit.set()
 
 class MappingsManager():
 
