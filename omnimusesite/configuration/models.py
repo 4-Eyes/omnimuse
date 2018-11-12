@@ -14,10 +14,10 @@ class LastfmArtistProcessQueueItem(models.Model):
     name = models.CharField(max_length=200, primary_key=True)
     last_fm_artist_url = models.CharField(max_length=200)
     processed = models.BooleanField()
-    processed_date = models.DateTimeField()
+    processed_date = models.DateTimeField(null=True)
 
 class LastfmUserProcessQueueItem(models.Model):
     name = models.CharField(max_length=200, primary_key=True)
     last_fm_user_url = models.CharField(max_length=200)
     processed = models.BooleanField()
-    processed_date = models.DateTimeField()
+    processed_date = models.DateTimeField(null=True)

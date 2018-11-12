@@ -1,5 +1,7 @@
+import json
 import os
 import re
+import sys
 import time
 from collections import namedtuple
 from datetime import datetime
@@ -13,13 +15,17 @@ import django
 import requests
 from lxml import etree
 
+# append parent directory to python path so that we can import omnimusesite.settings
+sys.path.append('..')
+
 # need to set up Django before importing the models otherwise the database
 # connection will not be properly initiated
 # could probably do this another way, but I'm lazy
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "omnimusesite.settings")
 django.setup()
 
-from configuration.models import Mapping, LastfmArtistProcessQueueItem, LastfmUserProcessQueueItem
+from configuration.models import (LastfmArtistProcessQueueItem,
+                                  LastfmUserProcessQueueItem, Mapping)
 
 SpotifyMapping = namedtuple('SpotifyMapping', ['spotify_id', 'spotify_url', 'track_name', 'last_fm_track_url', 'artist_name', 'last_fm_artist_url'])
 ArtistInfo = namedtuple('ArtistInfo', ['name', 'last_fm_artist_url'])
@@ -108,7 +114,7 @@ class LastfmHTMLCacheManager():
     
     def save_html(self, html, file_type, file_name=None):
         if file_name is None:
-            file_name = uuid4().hex
+            file_name = uuid4().hex + ".html"
         
         save_folder = None
         if file_type == FileTypes.TRACK_PAGE:
@@ -120,7 +126,7 @@ class LastfmHTMLCacheManager():
         if save_folder is None:
             return
 
-        file_path = os.path.join(save_folder, re.sub(r"[<>:\"\/\\\|\?\*]", "", file_name) + ".html")
+        file_path = os.path.join(save_folder, re.sub(r"[<>:\"\/\\\|\?\*]", "", file_name))
 
         # only write to file if it doesn't already exist
         if os.path.exists(file_path):
@@ -131,7 +137,7 @@ class LastfmHTMLCacheManager():
         
         self.cache_file_paths.put((file_path, file_name))
 
-    def get_html(self, type):
+    def get_html(self):
         # only get something if the queue is not empty
         if self.cache_file_paths.empty():
             return None, None
@@ -186,7 +192,6 @@ class LastfmHTMLProcessorThread(Thread):
             )
             mapping.save()
 
-
     def _process_user_lib_artist_html(self, html):
         artists = self.processor.parse_user_library_artist_page(html)
         for artist in artists:
@@ -211,7 +216,7 @@ class LastfmHTMLProcessorThread(Thread):
                     self._process_track_html(html)
                 elif file_type == FileTypes.USER_LIB_ARTIST_PAGE:
                     self._process_user_lib_artist_html(html)
-            time.sleep(30)
+            time.sleep(10)
     
     def stop_process(self):
         self.stop = True
@@ -251,15 +256,20 @@ class LastfmHTMLDownloader(Thread):
 
             # save page
             self.html_cache_manager.save_html(request.text, FileTypes.USER_LIB_ARTIST_PAGE)
+            page += 1
         
         # todo: get followers
 
         # after saving all the user library artist pages, mark the user as processed
-        user_queue_item = LastfmUserProcessQueueItem.objects.filter(name=user_name)
+        user_queue_item = LastfmUserProcessQueueItem.objects.filter(name=user_name).first()
+        if user_queue_item is None:
+            user_queue_item = LastfmUserProcessQueueItem(
+                name = user_name,
+                last_fm_user_url = 'https://www.last.fm/user/{0}'.format(user_name)
+            )
         user_queue_item.processed = True
         user_queue_item.processed_date = datetime.now()
         user_queue_item.save()
-
 
     def setup_last_fm_session(self, user_name, password):
         self.session = requests.session()
@@ -276,6 +286,8 @@ class LastfmHTMLDownloader(Thread):
         # is the cookies that this request sets
         self.session.post('https://secure.last.fm/login', data=data, headers=headers)
 
+        # download user lib artist pages to start processing
+        # self._download_user_lib_artist_pages(user_name)
 
     def run(self):
         while not self.stop:
@@ -289,14 +301,51 @@ class LastfmHTMLDownloader(Thread):
             if user_to_process is not None:
                 self._download_user_lib_artist_pages(user_to_process.name)
 
-            time.sleep(5)
-    
+            time.sleep(20)
+
     def stop_process(self):
         self.stop = True
 
 class MappingsManager():
 
-    def __init__(self):
+    def __init__(self, no_processing_threads=1):
         self.html_cache_manager = LastfmHTMLCacheManager()
         self.downloader = LastfmHTMLDownloader(self.html_cache_manager)
         self.processing_threads = []
+        self.no_processing_threads = no_processing_threads
+
+    def _load_config(self):
+        config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'config.json')
+        with open(config_path, 'r') as f:
+            return json.load(f)
+
+    def start(self):
+        # load config
+        config = self._load_config()
+
+        # setup downloader
+        self.downloader.setup_last_fm_session(config['scrapingAccountDetails']['username'], config['scrapingAccountDetails']['password'])
+        # start downloader
+        self.downloader.start()
+
+        # start processing threads
+        for _ in range(self.no_processing_threads):
+            t = LastfmHTMLProcessorThread(self.html_cache_manager)
+            t.start()
+            self.processing_threads.append(t)
+    
+    def stop(self):
+        # stop downloader
+        self.downloader.stop_process()
+        self.downloader.join()
+
+        # stop processing threads
+        for t in self.processing_threads:
+            t.stop_process()
+            t.join()
+
+if __name__ == '__main__':
+    manager = MappingsManager()
+    manager.start()
+    input()
+    manager.stop()
