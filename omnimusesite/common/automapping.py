@@ -28,10 +28,12 @@ from configuration.models import (LastfmArtistProcessQueueItem,
 
 SpotifyMapping = namedtuple('SpotifyMapping', ['spotify_id', 'spotify_url', 'track_name', 'last_fm_track_url', 'artist_name', 'last_fm_artist_url'])
 ArtistInfo = namedtuple('ArtistInfo', ['name', 'last_fm_artist_url'])
+UserInfo = namedtuple('UserInfo', ['name', 'last_fm_user_url'])
 
 class FileTypes(Enum):
     TRACK_PAGE = 1
     USER_LIB_ARTIST_PAGE = 2
+    USER_FOLLOWERS_PAGE = 3
 
 class LastfmHTMLProcessor():
 
@@ -56,6 +58,14 @@ class LastfmHTMLProcessor():
         except:
             return False, None
 
+    def _parse_user_follower_info_from_element(self, element):
+        try:
+            name = unescape(element.text)
+            last_fm_user_url = element.attrib['href']
+            return True, UserInfo(name, last_fm_user_url)
+        except:
+            return False, None
+
     def parse_track_page(self, html):
         tree = etree.HTML(html)
         results = tree.xpath('//a[contains(@class, "chartlist-play-button")]')
@@ -70,6 +80,15 @@ class LastfmHTMLProcessor():
         results = tree.xpath('//a[@class="link-block-target"]')
         for result in results:
             success, parsed_result = self._parse_artist_info_from_element(result)
+            if not success:
+                continue
+            yield parsed_result
+    
+    def parse_user_followers_page(self, html):
+        tree = etree.HTML(html)
+        results = tree.xpath('//a[contains(@class, "user-list-link")]')
+        for result in results:
+            success, parsed_result = self._parse_user_follower_info_from_element(result)
             if not success:
                 continue
             yield parsed_result
