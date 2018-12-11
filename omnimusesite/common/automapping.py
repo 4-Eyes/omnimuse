@@ -201,6 +201,9 @@ class LastfmHTMLProcessorThread(Thread):
     def _process_track_html(self, html):
         track_mappings = self.processor.parse_track_page(html)
         for track_mapping in track_mappings:
+            # if the artist url or track url contains '+noredirect' then don't process it.
+            if '+noredirect' in track_mapping.last_fm_artist_url or '+noredirect' in track_mapping.last_fm_track_url:
+                continue
             # check for existing results
             query = Mapping.objects.filter(spotify_id=track_mapping.spotify_id)
             if len(query) > 0:
@@ -237,6 +240,10 @@ class LastfmHTMLProcessorThread(Thread):
             # if it's already in the queue, no need to add it again
             if len(query) > 0:
                 # todo: add re-processing if it hasn't been updated in a while (say 2 months or something)
+                continue
+            # quite often there are typos in artist's names, when last.fm knows, the +noredirect is added to the url
+            # skip these artists during processing.
+            if '+noredirect' in artist.last_fm_artist_url:
                 continue
             queue_item = LastfmArtistProcessQueueItem(
                 name = artist.name,
@@ -393,7 +400,7 @@ class LastfmHTMLDownloader(Thread):
 
 class MappingsManager():
 
-    def __init__(self, no_processing_threads=8, no_user_downloaders=1, no_artist_downloaders=6, no_both_downloaders=1, user_seeds=[]):
+    def __init__(self, no_processing_threads=14, no_user_downloaders=0, no_artist_downloaders=10, no_both_downloaders=2, user_seeds=[]):
         self.html_cache_manager = LastfmHTMLCacheManager()
         self.downloaders = []
         self.processing_threads = []
